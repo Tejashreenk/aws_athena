@@ -1,0 +1,5 @@
+{
+    "database": "transformation",
+    "table_name": "stellar_org_census",
+    "question": "how many direct reports does Wages, Cameron employee have"
+  }
