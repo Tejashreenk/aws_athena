@@ -1,6 +1,7 @@
 import boto3
 import json
 import time
+import re
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
 def lambda_handler(event, context):
@@ -56,7 +57,6 @@ class SQL_Answer_Agent:
         if prompt:
             self.prompt = prompt
         else:
-            # TODO: prompt should give response only as sql query
             self.prompt = f'''Use the schema {self.schema} and respond ONLY with an SQL query to answer the question: {question}. 
             Response should contain ONLY the SQL Query'''
 
@@ -68,7 +68,7 @@ class SQL_Answer_Agent:
             "accept": '*/*',
             "body": json.dumps({
                 "max_tokens": 4096, 
-                "system": "You are an expert SQL database manager. Convert user questions into accurate SQL queries based on the given schemas. ", 
+                "system": "You are an expert SQL database manager. Convert user questions into accurate SQL queries based on the given schemas.", 
                 "messages": [{"role": "user", "content": content}], 
                 "anthropic_version": "bedrock-2023-05-31"
             })
@@ -91,7 +91,7 @@ class SQL_Answer_Agent:
             query = f"describe {self.table_name};"
             query_result = self.execute_sql_query(query)
             self.schema = query_result
-            print(f"self.schema:{self.schema}")
+            # print(f"self.schema:{self.schema}")
             return True
         except (NoCredentialsError, PartialCredentialsError) as e:
             print(f"Credentials error: {e}")
@@ -114,13 +114,13 @@ class SQL_Answer_Agent:
                 # print(response)
                 while True:
                     result = self.athena_client.get_query_execution(QueryExecutionId=query_execution_id)
-                    print(result)
+                    # print(result)
                     status = result['QueryExecution']['Status']['State']
                     if status == 'SUCCEEDED':
                         break
                     elif status in ['FAILED', 'CANCELLED']:
                         raise Exception(f"Query failed with status: {status}")
-                    time.sleep(5)
+                    time.sleep(2)
 
                 results = self.athena_client.get_query_results(QueryExecutionId=query_execution_id)
                 rows = results['ResultSet']['Rows']
@@ -136,11 +136,15 @@ class SQL_Answer_Agent:
         if prompt:
             prompt = prompt
         else:
-            prompt = f"Use the schema {self.schema} for table {self.table_name} and respond ONLY with an SQL query to answer the question: {query}"
+            prompt = f'''Use the schema {self.schema} for table {self.table_name} 
+            and respond ONLY with an SQL query to answer the question: {query}.
+            Write query in between SQL tags like <SQL></SQL>.'''
            
         # print(f"prompt: {prompt}") 
-        sql_query = self.get_llm_response(prompt)
-        print(f"sql query: {sql_query}") 
+        llm_response = self.get_llm_response(prompt)
+        sql_query = self.extract_sql(llm_response)
+        print(f"llm_response: {llm_response}") 
+        print(f"sql_query: {sql_query}") 
         sql_response = self.execute_sql_query(sql_query)
         response_summary = self.summarize_sql_response(f"Question: {query} Answer: {sql_response}")
 
@@ -150,3 +154,14 @@ class SQL_Answer_Agent:
         prompt = f"Summarize: {sql_response}"
         response = self.get_llm_response(prompt)
         return response
+
+    def extract_sql(self, text):
+        pattern = r'<SQL>(.*?)</SQL>'
+        matches = re.findall(pattern, text, re.DOTALL)
+        cleaned_matches = [match.strip() for match in matches]
+        if cleaned_matches:
+            cleaned_match = cleaned_matches[0]
+            # Replace newline characters with spaces
+            return cleaned_match.replace('\n', ' ')
+        else:
+            return "" #Future: Loop over the queries        return cleaned_matches[0] #Future: Loop over the queries
