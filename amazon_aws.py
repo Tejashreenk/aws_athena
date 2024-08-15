@@ -56,6 +56,7 @@ class SQL_Answer_Agent:
         if prompt:
             self.prompt = prompt
         else:
+            # TODO: prompt should give response only as sql query
             self.prompt = f'''Use the schema {self.schema} and respond ONLY with an SQL query to answer the question: {question}. 
             Response should contain ONLY the SQL Query'''
 
