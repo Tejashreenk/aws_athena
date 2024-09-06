@@ -2,4 +2,22 @@
     "database": "transformation",
     "table_name": "stellar_org_census",
     "question": "how many direct reports does Wages, Cameron employee have"
+  },
+  {
+    "body": {
+      "database": "transformation",
+      "table_name": "pl_transaction",
+      "question": "Can you list some of them",
+      "client": "bluestar",
+      "query_ans_arr": ["how many distinct account Ids","The result shows that there are 251 unique `account_id` values in the table"]
+    }
+  },
+  {
+    "body": {
+      "database": "transformation",
+      "table_name": "pl_transaction",
+      "question": "What is the total posting amount for the first account_id listed in the list",
+      "client": "bluestar",
+      "query_ans_arr": ["how many distinct account Ids","The result shows that there are 251 unique `account_id` values in the table","Can you list some of them","100000, 64010, 63100, 64140, 64130, 64652, 63150, 52725, 64204, and 17120"]
+    }
   }
